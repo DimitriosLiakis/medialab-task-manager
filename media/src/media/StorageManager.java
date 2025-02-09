@@ -14,7 +14,7 @@ import java.util.List;
  * Η κλάση StorageManager διαχειρίζεται την αποθήκευση και ανάκτηση των δεδομένων της εφαρμογής σε αρχεία JSON.
  */
 public class StorageManager {
-    private static final String FILE_PATH = "assets/medialab/data.json";
+    private static final String FILE_PATH = "medialab/data.json";
     private static final Gson gson = new GsonBuilder()
             .registerTypeAdapter(java.time.LocalDate.class, new LocalDateAdapter())
             .setPrettyPrinting()
