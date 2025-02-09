@@ -20,7 +20,7 @@ import java.util.Optional;
 
 /**
  * Η κλάση MainUI διαχειρίζεται την γραφική διεπαφή της εφαρμογής MediaLab Assistant.
- * Παρέχει τις λειτουργίες για τη διαχείριση εργασιών, κατηγοριών, προτεραιοτήτων και υπενθυμίσεων.
+ * Παρέχει λειτουργίες για τη διαχείριση εργασιών, κατηγοριών, προτεραιοτήτων και υπενθυμίσεων.
  */
 public class MainUI {
     private BorderPane root;
@@ -31,32 +31,25 @@ public class MainUI {
 
     private TableView<Task> taskTable;
     private ObservableList<Task> observableTaskList;
-    private FilteredList<Task> filteredData; // FilteredList for search functionality
+    private FilteredList<Task> filteredData; // FilteredList για αναζήτηση
 
-    // Πληροφορίες στην κορυφή
+    // Ετικέτες πληροφορίας στην κορυφή
     private Label totalTasksLabel;
     private Label completedTasksLabel;
     private Label delayedTasksLabel;
     private Label upcomingDeadlinesLabel;
+    
+    // Field for the search box (to update its filters easily)
+    private HBox searchBox;
 
-    /**
-     * Κατασκευαστής της κλάσης MainUI.
-     *
-     * @param root      Το κεντρικό BorderPane της γραφικής διεπαφής.
-     * @param dataModel Το αντικείμενο DataModel που περιέχει τα δεδομένα της εφαρμογής.
-     */
     public MainUI(BorderPane root, DataModel dataModel) {
         this.root = root;
         this.dataModel = dataModel;
-        // Assume that dataModel.getTasks(), getCategories(), and getPriorities() return the same list references.
         this.taskList = dataModel.getTasks();
         this.categories = dataModel.getCategories();
         this.priorities = dataModel.getPriorities();
     }
 
-    /**
-     * Αρχικοποιεί την γραφική διεπαφή.
-     */
     public void initUI() {
         setupMenuBar();
         setupTopInfo();
@@ -66,22 +59,23 @@ public class MainUI {
         updateTopInfo();
     }
 
-    /**
-     * Ρυθμίζει το μενού της εφαρμογής.
-     */
     private void setupMenuBar() {
         MenuBar menuBar = new MenuBar();
 
         // File Menu
         Menu fileMenu = new Menu("File");
+        // Modified Exit menu item:
         MenuItem exitItem = new MenuItem("Exit");
-        exitItem.setOnAction(e -> System.exit(0));
+        exitItem.setOnAction(e -> {
+            // Save the current state to the JSON file before exiting.
+            StorageManager.saveData(dataModel);
+            System.exit(0);
+        });
         fileMenu.getItems().add(exitItem);
 
-        // Manage Menu
+        // Manage Menu for Categories and Priorities
         Menu manageMenu = new Menu("Manage");
 
-        // Categories Submenu
         Menu manageCategories = new Menu("Categories");
         MenuItem addCategory = new MenuItem("Add Category");
         addCategory.setOnAction(e -> showAddCategoryDialog());
@@ -91,7 +85,6 @@ public class MainUI {
         deleteCategory.setOnAction(e -> showDeleteCategoryDialog());
         manageCategories.getItems().addAll(addCategory, editCategory, deleteCategory);
 
-        // Priorities Submenu
         Menu managePriorities = new Menu("Priorities");
         MenuItem addPriority = new MenuItem("Add Priority");
         addPriority.setOnAction(e -> showAddPriorityDialog());
@@ -113,9 +106,6 @@ public class MainUI {
         root.setTop(menuBar);
     }
 
-    /**
-     * Ρυθμίζει τις συγκεντρωτικές πληροφορίες στην κορυφή της οθόνης.
-     */
     private void setupTopInfo() {
         HBox infoBox = new HBox(20);
         infoBox.setPadding(new Insets(10));
@@ -137,9 +127,6 @@ public class MainUI {
         root.setTop(topContainer);
     }
 
-    /**
-     * Ενημερώνει τις συγκεντρωτικές πληροφορίες.
-     */
     private void updateTopInfo() {
         long totalTasks = taskList.size();
         long completedTasks = taskList.stream().filter(task -> "Completed".equals(task.getStatus())).count();
@@ -155,11 +142,8 @@ public class MainUI {
         upcomingDeadlinesLabel.setText("Deadlines in 7 Days: " + upcomingDeadlines);
     }
 
-    /**
-     * Ρυθμίζει τη γραμμή αναζήτησης.
-     */
     private void setupSearchBar() {
-        HBox searchBox = new HBox(10);
+        searchBox = new HBox(10);
         searchBox.setPadding(new Insets(10));
 
         TextField searchField = new TextField();
@@ -187,7 +171,6 @@ public class MainUI {
             String category = categoryFilter.getValue();
             String priority = priorityFilter.getValue();
 
-            // Update the predicate of the FilteredList instead of replacing the items
             filteredData.setPredicate(task -> {
                 boolean matchesTitle = title.isEmpty() || task.getTitle().toLowerCase().contains(title);
                 boolean matchesCategory = category.equals("All") || task.getCategory().equals(category);
@@ -203,7 +186,7 @@ public class MainUI {
             searchField.clear();
             categoryFilter.setValue("All");
             priorityFilter.setValue("All");
-            filteredData.setPredicate(task -> true);  // Show all tasks
+            filteredData.setPredicate(task -> true);
             updateTopInfo();
         });
 
@@ -218,17 +201,12 @@ public class MainUI {
         topContainer.getChildren().add(searchBox);
     }
 
-    /**
-     * Ρυθμίζει τον πίνακα εργασιών.
-     */
     private void setupTaskTable() {
         taskTable = new TableView<>();
-        // Create an observable list that wraps the existing taskList so that any change is reflected
         observableTaskList = FXCollections.observableList(taskList);
         filteredData = new FilteredList<>(observableTaskList, p -> true);
         taskTable.setItems(filteredData);
 
-        // Define Columns
         TableColumn<Task, Integer> idColumn = new TableColumn<>("ID");
         idColumn.setCellValueFactory(new PropertyValueFactory<>("id"));
         idColumn.setPrefWidth(50);
@@ -257,7 +235,6 @@ public class MainUI {
         statusColumn.setCellValueFactory(new PropertyValueFactory<>("status"));
         statusColumn.setPrefWidth(100);
 
-        // Action Column for Edit, Delete, Reminders
         TableColumn<Task, Void> actionColumn = new TableColumn<>("Actions");
         actionColumn.setPrefWidth(250);
         actionColumn.setCellFactory(param -> new TableCell<>() {
@@ -296,41 +273,34 @@ public class MainUI {
         root.setCenter(taskTable);
     }
 
-    /**
-     * Ρυθμίζει τη φόρμα προσθήκης νέας εργασίας.
-     */
     private void setupAddTaskForm() {
         VBox formBox = new VBox(10);
         formBox.setPadding(new Insets(10));
         formBox.setStyle("-fx-background-color: #f9f9f9;");
 
-        // Title
         TextField titleField = new TextField();
         titleField.setPromptText("Title");
 
-        // Description
         TextField descriptionField = new TextField();
         descriptionField.setPromptText("Description");
 
-        // Category (this will be at index 3)
+        // ComboBox για κατηγορία (στο index 3)
         ComboBox<String> categoryComboBox = new ComboBox<>(FXCollections.observableArrayList(categories));
         categoryComboBox.setPromptText("Category");
 
-        // Priority (this will be at index 4)
+        // ComboBox για προτεραιότητα (στο index 4)
         ComboBox<String> priorityComboBox = new ComboBox<>(FXCollections.observableArrayList(priorities));
         priorityComboBox.setPromptText("Priority");
 
-        // Deadline
         DatePicker deadlinePicker = new DatePicker();
         deadlinePicker.setPromptText("Deadline (YYYY-MM-DD)");
 
-        // Status (disabled for new tasks; always "Open")
+        // Κατάσταση "Open" για νέα tasks (επιλογή απενεργοποιημένη)
         ComboBox<String> statusComboBox = new ComboBox<>(FXCollections.observableArrayList(
                 "Open", "In Progress", "Postponed", "Completed", "Delayed"));
         statusComboBox.setValue("Open");
         statusComboBox.setDisable(true);
 
-        // Add Button – note that we now add the task only once to the observable list.
         Button addButton = new Button("Add Task");
         addButton.setOnAction(e -> {
             String title = titleField.getText().trim();
@@ -346,10 +316,8 @@ public class MainUI {
 
             int newId = taskList.stream().mapToInt(Task::getId).max().orElse(0) + 1;
             Task newTask = new Task(newId, title, description, category, priority, deadline);
-            // Add the task only once.
             observableTaskList.add(newTask);
 
-            // Clear Fields
             titleField.clear();
             descriptionField.clear();
             categoryComboBox.setValue(null);
@@ -357,9 +325,9 @@ public class MainUI {
             deadlinePicker.setValue(null);
 
             updateTopInfo();
+            updateFilterComboBoxes(); // Update search filters after adding a new task
         });
 
-        // Layout: note the indices—categoryComboBox is at index 3, priorityComboBox at index 4.
         HBox buttonsBox = new HBox(10, addButton);
         formBox.getChildren().addAll(
                 new Label("Add New Task:"),
@@ -374,11 +342,6 @@ public class MainUI {
         root.setBottom(formBox);
     }
 
-    /**
-     * Εμφανίζει το παράθυρο διαλόγου για την επεξεργασία μιας εργασίας.
-     *
-     * @param task Η εργασία που θα επεξεργαστεί.
-     */
     private void showEditTaskDialog(Task task) {
         Dialog<Task> dialog = new Dialog<>();
         dialog.setTitle("Edit Task");
@@ -387,7 +350,6 @@ public class MainUI {
         ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
 
-        // Create Fields
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
@@ -419,7 +381,6 @@ public class MainUI {
 
         dialog.getDialogPane().setContent(grid);
 
-        // Enable/Disable save button based on input
         Node saveButton = dialog.getDialogPane().lookupButton(saveButtonType);
         saveButton.setDisable(false);
 
@@ -437,7 +398,6 @@ public class MainUI {
                     return null;
                 }
 
-                // Update task fields
                 task.setTitle(title);
                 task.setDescription(description);
                 task.setCategory(category);
@@ -445,7 +405,6 @@ public class MainUI {
                 task.setDeadline(deadline);
                 task.setStatus(status);
 
-                // If status is set to "Completed", clear all reminders
                 if ("Completed".equals(status)) {
                     task.clearReminders();
                 }
@@ -456,18 +415,12 @@ public class MainUI {
         });
 
         Optional<Task> result = dialog.showAndWait();
-
         result.ifPresent(updatedTask -> {
             taskTable.refresh();
             updateTopInfo();
         });
     }
 
-    /**
-     * Διαγράφει μια εργασία μετά από επιβεβαίωση από τον χρήστη.
-     *
-     * @param task Η εργασία που θα διαγραφεί.
-     */
     private void deleteTask(Task task) {
         Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
         alert.setTitle("Delete Task");
@@ -482,11 +435,6 @@ public class MainUI {
         }
     }
 
-    /**
-     * Εμφανίζει το παράθυρο διαλόγου για τη διαχείριση υπενθυμίσεων μιας εργασίας.
-     *
-     * @param task Η εργασία για την οποία θα διαχειριστούμε τις υπενθυμίσεις.
-     */
     private void showManageRemindersDialog(Task task) {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Manage Reminders for: " + task.getTitle());
@@ -498,7 +446,6 @@ public class MainUI {
         VBox content = new VBox(10);
         content.setPadding(new Insets(10));
 
-        // Table of Reminders
         TableView<Reminder> reminderTable = new TableView<>();
         ObservableList<Reminder> reminderList = FXCollections.observableArrayList(task.getReminders());
         reminderTable.setItems(reminderList);
@@ -511,7 +458,6 @@ public class MainUI {
         dateColumn.setCellValueFactory(new PropertyValueFactory<>("date"));
         dateColumn.setPrefWidth(150);
 
-        // Action Column
         TableColumn<Reminder, Void> actionCol = new TableColumn<>("Actions");
         actionCol.setPrefWidth(150);
         actionCol.setCellFactory(param -> new TableCell<>() {
@@ -543,9 +489,13 @@ public class MainUI {
 
         reminderTable.getColumns().addAll(typeColumn, dateColumn, actionCol);
 
-        // Add Reminder Button
         Button addReminderButton = new Button("Add Reminder");
-        addReminderButton.setOnAction(e -> showAddReminderDialog(task, reminderList, reminderTable));
+        if ("Completed".equals(task.getStatus())) {
+            addReminderButton.setDisable(true);
+            addReminderButton.setText("Task Completed");
+        } else {
+            addReminderButton.setOnAction(e -> showAddReminderDialog(task, reminderList, reminderTable));
+        }
 
         content.getChildren().addAll(reminderTable, addReminderButton);
         dialog.getDialogPane().setContent(content);
@@ -553,13 +503,6 @@ public class MainUI {
         dialog.showAndWait();
     }
 
-    /**
-     * Εμφανίζει το παράθυρο διαλόγου για την προσθήκη νέας υπενθύμισης.
-     *
-     * @param task          Η εργασία για την οποία θα προσθέσουμε υπενθύμιση.
-     * @param reminderList  Η λίστα υπενθυμίσεων της εργασίας.
-     * @param reminderTable Ο πίνακας υπενθυμίσεων.
-     */
     private void showAddReminderDialog(Task task, ObservableList<Reminder> reminderList, TableView<Reminder> reminderTable) {
         Dialog<Reminder> dialog = new Dialog<>();
         dialog.setTitle("Add Reminder");
@@ -568,7 +511,6 @@ public class MainUI {
         ButtonType addButtonType = new ButtonType("Add", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(addButtonType, ButtonType.CANCEL);
 
-        // Create Fields
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
@@ -599,11 +541,9 @@ public class MainUI {
 
         dialog.getDialogPane().setContent(grid);
 
-        // Enable/Disable add button based on input
         Node addButton = dialog.getDialogPane().lookupButton(addButtonType);
         addButton.setDisable(true);
 
-        // Validation listeners
         typeComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
                 if ("Custom Date".equals(newVal)) {
@@ -667,14 +607,6 @@ public class MainUI {
         });
     }
 
-    /**
-     * Εμφανίζει το παράθυρο διαλόγου για την επεξεργασία μιας υπενθύμισης.
-     *
-     * @param task          Η εργασία που περιέχει την υπενθύμιση.
-     * @param reminder      Η υπενθύμιση που θα επεξεργαστεί.
-     * @param reminderList  Η λίστα υπενθυμίσεων της εργασίας.
-     * @param reminderTable Ο πίνακας υπενθυμίσεων.
-     */
     private void showEditReminderDialog(Task task, Reminder reminder, ObservableList<Reminder> reminderList, TableView<Reminder> reminderTable) {
         Dialog<Reminder> dialog = new Dialog<>();
         dialog.setTitle("Edit Reminder");
@@ -683,7 +615,6 @@ public class MainUI {
         ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
 
-        // Create Fields
         GridPane grid = new GridPane();
         grid.setHgap(10);
         grid.setVgap(10);
@@ -714,7 +645,6 @@ public class MainUI {
 
         dialog.getDialogPane().setContent(grid);
 
-        // Enable/Disable save button based on input
         Node saveButton = dialog.getDialogPane().lookupButton(saveButtonType);
         saveButton.setDisable(false);
 
@@ -781,9 +711,7 @@ public class MainUI {
         });
     }
 
-    /**
-     * Εμφανίζει το παράθυρο διαλόγου για την προσθήκη νέας κατηγορίας.
-     */
+    // Methods for managing categories
     private void showAddCategoryDialog() {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Add Category");
@@ -800,24 +728,19 @@ public class MainUI {
                 showAlert(Alert.AlertType.ERROR, "Validation Error", "Category already exists.");
                 return;
             }
-            // Add the new category only once (categories and dataModel.getCategories() reference the same list)
             categories.add(name);
             updateCategoryComboBoxes();
-            updateFilterComboBoxes();
+            updateFilterComboBoxes(); // Update search filters when a new category is added
             taskTable.refresh();
             updateTopInfo();
         });
     }
 
-    /**
-     * Εμφανίζει το παράθυρο διαλόγου για την επεξεργασία μιας κατηγορίας.
-     */
     private void showEditCategoryDialog() {
         if (categories.isEmpty()) {
             showAlert(Alert.AlertType.ERROR, "Error", "No categories available to edit.");
             return;
         }
-
         ChoiceDialog<String> dialog = new ChoiceDialog<>(categories.get(0), categories);
         dialog.setTitle("Edit Category");
         dialog.setHeaderText("Select Category to Edit");
@@ -842,7 +765,6 @@ public class MainUI {
                 }
                 int index = categories.indexOf(selectedCategory);
                 categories.set(index, name);
-
                 for (Task task : taskList) {
                     if (task.getCategory().equals(selectedCategory)) {
                         task.setCategory(name);
@@ -856,15 +778,11 @@ public class MainUI {
         });
     }
 
-    /**
-     * Εμφανίζει το παράθυρο διαλόγου για τη διαγραφή μιας κατηγορίας.
-     */
     private void showDeleteCategoryDialog() {
         if (categories.isEmpty()) {
             showAlert(Alert.AlertType.ERROR, "Error", "No categories available to delete.");
             return;
         }
-
         ChoiceDialog<String> dialog = new ChoiceDialog<>(categories.get(0), categories);
         dialog.setTitle("Delete Category");
         dialog.setHeaderText("Select Category to Delete");
@@ -876,11 +794,9 @@ public class MainUI {
             confirmation.setTitle("Delete Category");
             confirmation.setHeaderText("Are you sure you want to delete the category: " + selectedCategory + "?");
             confirmation.setContentText("This will also delete all tasks under this category and their reminders.");
-
             Optional<ButtonType> confirmResult = confirmation.showAndWait();
             if (confirmResult.isPresent() && confirmResult.get() == ButtonType.OK) {
                 categories.remove(selectedCategory);
-
                 taskList.removeIf(task -> task.getCategory().equals(selectedCategory));
                 taskTable.refresh();
                 updateCategoryComboBoxes();
@@ -890,9 +806,7 @@ public class MainUI {
         });
     }
 
-    /**
-     * Εμφανίζει το παράθυρο διαλόγου για την προσθήκη νέας προτεραιότητας.
-     */
+    // Methods for managing priorities
     private void showAddPriorityDialog() {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Add Priority");
@@ -909,24 +823,19 @@ public class MainUI {
                 showAlert(Alert.AlertType.ERROR, "Validation Error", "Priority already exists.");
                 return;
             }
-            // Add the new priority only once.
             priorities.add(name);
             updatePriorityComboBoxes();
-            updateFilterComboBoxes();
+            updateFilterComboBoxes(); // Update search filters when a new priority is added
             taskTable.refresh();
             updateTopInfo();
         });
     }
 
-    /**
-     * Εμφανίζει το παράθυρο διαλόγου για την επεξεργασία μιας προτεραιότητας.
-     */
     private void showEditPriorityDialog() {
-        if (priorities.size() <= 1) { // Only "Default" exists
+        if (priorities.size() <= 1) {
             showAlert(Alert.AlertType.ERROR, "Error", "No priorities available to edit.");
             return;
         }
-
         ChoiceDialog<String> dialog = new ChoiceDialog<>(null, priorities);
         dialog.setTitle("Edit Priority");
         dialog.setHeaderText("Select Priority to Edit");
@@ -955,7 +864,6 @@ public class MainUI {
                 }
                 int index = priorities.indexOf(selectedPriority);
                 priorities.set(index, name);
-
                 for (Task task : taskList) {
                     if (task.getPriority().equals(selectedPriority)) {
                         task.setPriority(name);
@@ -969,15 +877,11 @@ public class MainUI {
         });
     }
 
-    /**
-     * Εμφανίζει το παράθυρο διαλόγου για τη διαγραφή μιας προτεραιότητας.
-     */
     private void showDeletePriorityDialog() {
-        if (priorities.size() <= 1) { // Only "Default" exists
+        if (priorities.size() <= 1) {
             showAlert(Alert.AlertType.ERROR, "Error", "No priorities available to delete.");
             return;
         }
-
         ChoiceDialog<String> dialog = new ChoiceDialog<>(null, priorities);
         dialog.setTitle("Delete Priority");
         dialog.setHeaderText("Select Priority to Delete");
@@ -993,11 +897,9 @@ public class MainUI {
             confirmation.setTitle("Delete Priority");
             confirmation.setHeaderText("Are you sure you want to delete the priority: " + selectedPriority + "?");
             confirmation.setContentText("All tasks with this priority will be set to 'Default'.");
-
             Optional<ButtonType> confirmResult = confirmation.showAndWait();
             if (confirmResult.isPresent() && confirmResult.get() == ButtonType.OK) {
                 priorities.remove(selectedPriority);
-
                 for (Task task : taskList) {
                     if (task.getPriority().equals(selectedPriority)) {
                         task.setPriority("Default");
@@ -1011,37 +913,37 @@ public class MainUI {
         });
     }
 
-    /**
-     * Ενημερώνει τα ComboBoxes των κατηγοριών στην φόρμα προσθήκης εργασίας.
-     */
+    // Methods for updating ComboBoxes in the Add Task form
     private void updateCategoryComboBoxes() {
-        // In the Add Task form, the category ComboBox is at index 3.
         VBox formBox = (VBox) root.getBottom();
         if (formBox.getChildren().size() >= 7) {
+            // Το ComboBox της κατηγορίας βρίσκεται στο index 3.
             ComboBox<String> categoryComboBox = (ComboBox<String>) formBox.getChildren().get(3);
             categoryComboBox.setItems(FXCollections.observableArrayList(categories));
         }
     }
 
-    /**
-     * Ενημερώνει τα ComboBoxes των προτεραιοτήτων στην φόρμα προσθήκης εργασίας.
-     */
     private void updatePriorityComboBoxes() {
-        // In the Add Task form, the priority ComboBox is at index 4.
         VBox formBox = (VBox) root.getBottom();
         if (formBox.getChildren().size() >= 7) {
+            // Το ComboBox της προτεραιότητας βρίσκεται στο index 4.
             ComboBox<String> priorityComboBox = (ComboBox<String>) formBox.getChildren().get(4);
             priorityComboBox.setItems(FXCollections.observableArrayList(priorities));
         }
     }
 
-    /**
-     * Ενημερώνει τα ComboBoxes των φίλτρων αναζήτησης.
-     */
+    // Method for updating the search filter ComboBoxes
     private void updateFilterComboBoxes() {
-        VBox topBox = (VBox) root.getTop();
-        if (topBox.getChildren().size() >= 2) {
-            HBox searchBox = (HBox) topBox.getChildren().get(1);
+        if (searchBox != null) {
+            // In our searchBox, the children order is:
+            // 0: Label "Search:"
+            // 1: searchField
+            // 2: Label "Category:"
+            // 3: categoryFilter
+            // 4: Label "Priority:"
+            // 5: priorityFilter
+            // 6: searchButton
+            // 7: clearButton
             ComboBox<String> categoryFilter = (ComboBox<String>) searchBox.getChildren().get(3);
             ComboBox<String> priorityFilter = (ComboBox<String>) searchBox.getChildren().get(5);
 
@@ -1059,9 +961,6 @@ public class MainUI {
         }
     }
 
-    /**
-     * Εμφανίζει το παράθυρο διαλόγου "About".
-     */
     private void showAboutDialog() {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("About MediaLab");
@@ -1070,13 +969,6 @@ public class MainUI {
         alert.showAndWait();
     }
 
-    /**
-     * Εμφανίζει ένα alert με το συγκεκριμένο μήνυμα.
-     *
-     * @param type    Ο τύπος του alert.
-     * @param title   Ο τίτλος του alert.
-     * @param message Το μήνυμα του alert.
-     */
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
         alert.setTitle(title);
