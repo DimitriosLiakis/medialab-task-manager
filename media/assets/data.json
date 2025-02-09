@@ -1,0 +1,44 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Complete Project",
+      "description": "Finish the JavaFX project by end of the week.",
+      "category": "Work",
+      "priority": "High",
+      "deadline": "2024-12-10",
+      "status": "Open",
+      "reminders": [
+        {
+          "type": "1 day before",
+          "date": "2024-12-09"
+        },
+        {
+          "type": "Custom Date",
+          "date": "2024-12-05"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Grocery Shopping",
+      "description": "Buy vegetables and fruits.",
+      "category": "Personal",
+      "priority": "Medium",
+      "deadline": "2024-12-05",
+      "status": "Completed",
+      "reminders": []
+    }
+  ],
+  "categories": [
+    "Default",
+    "Work",
+    "Personal"
+  ],
+  "priorities": [
+    "Default",
+    "High",
+    "Medium",
+    "Low"
+  ]
+}
