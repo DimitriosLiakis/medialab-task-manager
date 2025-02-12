@@ -1,4 +1,3 @@
-// File: src/media/MainUI.java
 package media;
 
 import javafx.collections.FXCollections;
@@ -284,13 +283,35 @@ public class MainUI {
         TextField descriptionField = new TextField();
         descriptionField.setPromptText("Description");
 
-        // ComboBox για κατηγορία (στο index 3)
+        // ComboBox για κατηγορία με custom button cell ώστε να εμφανίζεται το prompt text όταν δεν υπάρχει επιλογή
         ComboBox<String> categoryComboBox = new ComboBox<>(FXCollections.observableArrayList(categories));
         categoryComboBox.setPromptText("Category");
+        categoryComboBox.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(categoryComboBox.getPromptText());
+                } else {
+                    setText(item);
+                }
+            }
+        });
 
-        // ComboBox για προτεραιότητα (στο index 4)
+        // ComboBox για προτεραιότητα με custom button cell ώστε να εμφανίζεται το prompt text όταν δεν υπάρχει επιλογή
         ComboBox<String> priorityComboBox = new ComboBox<>(FXCollections.observableArrayList(priorities));
         priorityComboBox.setPromptText("Priority");
+        priorityComboBox.setButtonCell(new ListCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(priorityComboBox.getPromptText());
+                } else {
+                    setText(item);
+                }
+            }
+        });
 
         DatePicker deadlinePicker = new DatePicker();
         deadlinePicker.setPromptText("Deadline (YYYY-MM-DD)");
@@ -320,12 +341,13 @@ public class MainUI {
 
             titleField.clear();
             descriptionField.clear();
+            // Καθαρίζουμε τις επιλογές ώστε να εμφανίζεται ξανά το prompt text
             categoryComboBox.setValue(null);
             priorityComboBox.setValue(null);
             deadlinePicker.setValue(null);
 
             updateTopInfo();
-            updateFilterComboBoxes(); // Update search filters after adding a new task
+            updateFilterComboBoxes(); // Ενημέρωση των φίλτρων αναζήτησης
         });
 
         HBox buttonsBox = new HBox(10, addButton);
@@ -935,7 +957,7 @@ public class MainUI {
     // Method for updating the search filter ComboBoxes
     private void updateFilterComboBoxes() {
         if (searchBox != null) {
-            // In our searchBox, the children order is:
+            // Στο searchBox η σειρά των στοιχείων είναι:
             // 0: Label "Search:"
             // 1: searchField
             // 2: Label "Category:"
