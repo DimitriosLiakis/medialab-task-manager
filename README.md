@@ -9,21 +9,6 @@ Ensure you have the following installed on your system:
 - **JavaFX SDK** (Tested with /opt/javafx-sdk)
 - **Gson Library** (Version 2.8.9)
 
-## Project Structure
-```
-media/
-├── src/
-│   ├── media/
-│   │   ├── Main.java
-│   │   ├── Controller.java
-│   │   ├── Model.java
-│   ├── module-info.java
-├── mods/
-│   ├── gson-2.8.9.jar
-├── bin/
-│   ├── (Compiled .class files)
-└── README.md
-```
 
 ## Building and Running
 
