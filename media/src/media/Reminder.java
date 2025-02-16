@@ -1,4 +1,3 @@
-// File: src/media/Reminder.java
 package media;
 
 import java.time.LocalDate;
