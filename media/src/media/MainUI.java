@@ -14,6 +14,7 @@ import javafx.scene.layout.VBox;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,6 +41,36 @@ public class MainUI {
     
     // Field for the search box (to update its filters easily)
     private HBox searchBox;
+    
+    // Active Reminders Panel components
+    private TableView<ActiveReminder> activeRemindersTable;
+    private Label activeRemindersTitleLabel; // Shows "Active Reminders: X"
+    private Label earliestReminderLabel;     // Shows the next expiring reminder
+
+    // Inner class to represent active reminders in aggregated view.
+    public static class ActiveReminder {
+        private final String taskTitle;
+        private final String reminderType;
+        private final LocalDate reminderDate;
+
+        public ActiveReminder(String taskTitle, String reminderType, LocalDate reminderDate) {
+            this.taskTitle = taskTitle;
+            this.reminderType = reminderType;
+            this.reminderDate = reminderDate;
+        }
+
+        public String getTaskTitle() {
+            return taskTitle;
+        }
+
+        public String getReminderType() {
+            return reminderType;
+        }
+
+        public LocalDate getReminderDate() {
+            return reminderDate;
+        }
+    }
 
     public MainUI(BorderPane root, DataModel dataModel) {
         this.root = root;
@@ -55,6 +86,7 @@ public class MainUI {
         setupSearchBar();
         setupTaskTable();
         setupAddTaskForm();
+        setupActiveRemindersPanel(); // Set up the active reminders panel on the right side
         updateTopInfo();
     }
 
@@ -341,7 +373,6 @@ public class MainUI {
 
             titleField.clear();
             descriptionField.clear();
-            // Καθαρίζουμε τις επιλογές ώστε να εμφανίζεται ξανά το prompt text
             categoryComboBox.setValue(null);
             priorityComboBox.setValue(null);
             deadlinePicker.setValue(null);
@@ -454,6 +485,7 @@ public class MainUI {
             observableTaskList.remove(task);
             taskTable.refresh();
             updateTopInfo();
+            refreshActiveReminders(); // Update active reminders
         }
     }
 
@@ -499,6 +531,7 @@ public class MainUI {
                     reminderList.remove(reminder);
                     reminderTable.refresh();
                     updateTopInfo();
+                    refreshActiveReminders();
                 });
             }
 
@@ -626,6 +659,7 @@ public class MainUI {
             reminderTable.refresh();
             taskTable.refresh();
             updateTopInfo();
+            refreshActiveReminders();
         });
     }
 
@@ -730,6 +764,7 @@ public class MainUI {
             reminderTable.refresh();
             taskTable.refresh();
             updateTopInfo();
+            refreshActiveReminders();
         });
     }
 
@@ -824,6 +859,7 @@ public class MainUI {
                 updateCategoryComboBoxes();
                 updateFilterComboBoxes();
                 updateTopInfo();
+                refreshActiveReminders();
             }
         });
     }
@@ -987,7 +1023,7 @@ public class MainUI {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("About MediaLab");
         alert.setHeaderText("MediaLab Assistant");
-        alert.setContentText("MediaLab Assistant\nVersion 1.0\nDeveloped by Your Name");
+        alert.setContentText("MediaLab Assistant\nVersion 1.0\nDeveloped by Dimitrios Liakis");
         alert.showAndWait();
     }
 
@@ -997,5 +1033,65 @@ public class MainUI {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+    
+    // --- Active Reminders Panel methods ---
+    
+    /**
+     * Sets up the active reminders panel on the right side of the UI.
+     */
+    private void setupActiveRemindersPanel() {
+        activeRemindersTable = new TableView<>();
+        // Create labels for the title (with count) and the next expiring reminder.
+        activeRemindersTitleLabel = new Label("Active Reminders: 0");
+        earliestReminderLabel = new Label("Next Expiring: None");
+        
+        refreshActiveReminders(); // Update table and labels
+        
+        TableColumn<ActiveReminder, String> taskCol = new TableColumn<>("Task");
+        taskCol.setCellValueFactory(new PropertyValueFactory<>("taskTitle"));
+        
+        TableColumn<ActiveReminder, String> typeCol = new TableColumn<>("Type");
+        typeCol.setCellValueFactory(new PropertyValueFactory<>("reminderType"));
+        
+        TableColumn<ActiveReminder, LocalDate> dateCol = new TableColumn<>("Date");
+        dateCol.setCellValueFactory(new PropertyValueFactory<>("reminderDate"));
+        
+        activeRemindersTable.getColumns().addAll(taskCol, typeCol, dateCol);
+        
+        VBox remindersPanel = new VBox(10, activeRemindersTitleLabel, earliestReminderLabel, activeRemindersTable);
+        remindersPanel.setPadding(new Insets(10));
+        remindersPanel.setPrefWidth(400); // Increased width for more space
+        root.setRight(remindersPanel);
+    }
+    
+    /**
+     * Refreshes the active reminders list by scanning all tasks and including
+     * only those reminders whose date is today or in the future.
+     * Also updates the title with count and shows the next expiring reminder.
+     */
+    private void refreshActiveReminders() {
+        ObservableList<ActiveReminder> updatedList = FXCollections.observableArrayList();
+        LocalDate today = LocalDate.now();
+        for (Task task : taskList) {
+            for (Reminder reminder : task.getReminders()) {
+                if (!reminder.getDate().isBefore(today)) {
+                    updatedList.add(new ActiveReminder(task.getTitle(), reminder.getType(), reminder.getDate()));
+                }
+            }
+        }
+        activeRemindersTable.setItems(updatedList);
+        // Update the active reminders title with count
+        activeRemindersTitleLabel.setText("Active Reminders: " + updatedList.size());
+        
+        // Determine the next expiring reminder, if any
+        Optional<ActiveReminder> nextExpiring = updatedList.stream()
+                .min(Comparator.comparing(ActiveReminder::getReminderDate));
+        if (nextExpiring.isPresent()) {
+            ActiveReminder next = nextExpiring.get();
+            earliestReminderLabel.setText("Next Expiring: " + next.getTaskTitle() + " on " + next.getReminderDate());
+        } else {
+            earliestReminderLabel.setText("Next Expiring: None");
+        }
     }
 }
