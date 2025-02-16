@@ -1,4 +1,3 @@
-// File: src/media/DataModel.java
 package media;
 
 import java.util.List;
