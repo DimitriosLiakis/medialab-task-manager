@@ -1,4 +1,3 @@
-// File: src/media/StorageManager.java
 package media;
 
 import com.google.gson.*;
