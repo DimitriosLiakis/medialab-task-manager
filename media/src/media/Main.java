@@ -1,4 +1,3 @@
-// File: src/media/Main.java
 package media;
 
 import javafx.application.Application;
@@ -40,7 +39,7 @@ public class Main extends Application {
         BorderPane root = new BorderPane();
         Scene scene = new Scene(root, 1200, 700);
 
-        MainUI mainUI = new MainUI(root, dataModel); // Τροποποίηση αυτής της γραμμής
+        MainUI mainUI = new MainUI(root, dataModel); 
         mainUI.initUI();
 
         primaryStage.setScene(scene);
