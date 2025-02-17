@@ -1,7 +1,7 @@
 # Media Application
 
 This is a Java-based media application utilizing **JavaFX** for the graphical user interface and **Gson** for JSON parsing.
-
+As part of the work, a Task Management System will be implemented. The application will allow the user to create, edit, and monitor available tasks. In addition, the user will be able to manage multiple tasks, set priorities and deadlines, and receive reminders for upcoming tasks.
 ## Prerequisites
 Ensure you have the following installed on your system:
 
