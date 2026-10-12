@@ -1,0 +1,7 @@
+# Compiled output
+*.class
+bin/
+out/
+
+# Runtime data written by the app
+medialab/
